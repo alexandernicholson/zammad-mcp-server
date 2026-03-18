@@ -203,12 +203,46 @@ export class ZammadClient {
 
   kbInit() { return this.request<unknown>("POST", "/knowledge_bases/init"); }
 
-  kbSearch(query: string) {
-    return this.request<unknown>("GET", `/knowledge_base/search?query=${encodeURIComponent(query)}&locale=${this.localeId}`);
+  async kbSearch(query: string): Promise<unknown> {
+    // Zammad has no dedicated KB search endpoint.
+    // Fetch all KB data via init, then filter answers client-side.
+    const init = await this.request<Record<string, Record<string, unknown>>>("POST", "/knowledge_bases/init");
+    const q = query.toLowerCase();
+
+    const translations = init["KnowledgeBaseAnswerTranslation"] ?? {};
+    const contents = init["KnowledgeBaseAnswerTranslationContent"] as Record<string, any> ?? {};
+    const answers = init["KnowledgeBaseAnswer"] ?? {};
+    const categoryTranslations = init["KnowledgeBaseCategoryTranslation"] ?? {};
+
+    const results: unknown[] = [];
+    for (const [id, t] of Object.entries(translations) as [string, any][]) {
+      const title = (t.title ?? "").toLowerCase();
+      const content = (contents[t.content_id]?.body ?? "").toLowerCase();
+      if (title.includes(q) || content.includes(q)) {
+        const answer = answers[t.answer_id] as any;
+        const catTranslation = answer ? Object.values(categoryTranslations).find((ct: any) => ct.category_id === answer.category_id) as any : null;
+        results.push({
+          answer_id: t.answer_id,
+          translation_id: parseInt(id),
+          title: t.title,
+          category: catTranslation?.title ?? null,
+          published: !!answer?.published_at,
+          body_preview: (contents[t.content_id]?.body ?? "").slice(0, 200),
+        });
+      }
+    }
+    return results.length ? results : { message: "No knowledge base articles matched the query.", query };
   }
 
-  kbAnswerFind(answerId: number) {
-    return this.request<unknown>("GET", `/knowledge_bases/${this.kbId}/answers/${answerId}`);
+  async kbAnswerFind(answerId: number) {
+    // First get the answer metadata to find the translation ID
+    const answer = await this.request<any>("GET", `/knowledge_bases/${this.kbId}/answers/${answerId}`);
+    // Then re-fetch with content included
+    const translationIds = answer?.assets?.KnowledgeBaseAnswer?.[answerId]?.translation_ids ?? [];
+    if (translationIds.length > 0) {
+      return this.request<unknown>("GET", `/knowledge_bases/${this.kbId}/answers/${answerId}?include_contents=${translationIds[0]}`);
+    }
+    return answer;
   }
   kbAnswerCreate(data: { category_id: number; title: string; body: string }) {
     return this.request<unknown>("POST", `/knowledge_bases/${this.kbId}/answers`, {

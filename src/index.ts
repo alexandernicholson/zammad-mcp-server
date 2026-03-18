@@ -20,6 +20,10 @@ const server = new McpServer({
 
 // ── Helpers ─────────────────────────────────────────────────
 
+// Coerce string→number since some LLMs pass numbers as strings
+const zid = z.coerce.number();
+const znum = z.coerce.number();
+
 function json(data: unknown): string {
   return JSON.stringify(data, null, 2);
 }
@@ -40,16 +44,16 @@ async function handle(fn: () => Promise<unknown>) {
 
 server.tool("search_tickets", "Search tickets by query (e.g. customer email, keyword, ticket number)", {
   query: z.string().describe("Search query"),
-  limit: z.number().optional().describe("Max results (default 10)"),
+  limit: z.coerce.number().optional().describe("Max results (default 10)"),
 }, (args) => handle(() => client.ticketsSearch(args.query, args.limit)));
 
 server.tool("list_tickets", "List tickets with pagination", {
-  page: z.number().optional().describe("Page number (default 1)"),
-  per_page: z.number().optional().describe("Results per page (default 50)"),
+  page: z.coerce.number().optional().describe("Page number (default 1)"),
+  per_page: z.coerce.number().optional().describe("Results per page (default 50)"),
 }, (args) => handle(() => client.ticketsAll(args.page, args.per_page)));
 
 server.tool("get_ticket", "Get a ticket by ID with full details", {
-  id: z.number().describe("Ticket ID"),
+  id: z.coerce.number().describe("Ticket ID"),
 }, (args) => handle(() => client.ticketsFind(args.id)));
 
 server.tool("create_ticket", "Create a new support ticket", {
@@ -58,44 +62,44 @@ server.tool("create_ticket", "Create a new support ticket", {
   customer: z.string().describe("Customer email address"),
   body: z.string().describe("Initial message body"),
   type: z.string().optional().describe("Article type: note, email, phone (default: note)"),
-  priority_id: z.number().optional().describe("Priority ID (1=low, 2=normal, 3=high)"),
-  state_id: z.number().optional().describe("State ID (1=new, 2=open, 3=pending reminder, 4=closed)"),
+  priority_id: z.coerce.number().optional().describe("Priority ID (1=low, 2=normal, 3=high)"),
+  state_id: z.coerce.number().optional().describe("State ID (1=new, 2=open, 3=pending reminder, 4=closed)"),
   tags: z.string().optional().describe("Comma-separated tags"),
 }, (args) => handle(() => client.ticketsCreate(args)));
 
 server.tool("update_ticket", "Update a ticket's properties (state, priority, group, owner, title)", {
-  id: z.number().describe("Ticket ID"),
+  id: z.coerce.number().describe("Ticket ID"),
   title: z.string().optional().describe("New title"),
   group: z.string().optional().describe("New group name"),
   state: z.string().optional().describe("New state name (new, open, closed, etc.)"),
-  priority_id: z.number().optional().describe("New priority ID"),
-  owner_id: z.number().optional().describe("New owner user ID"),
+  priority_id: z.coerce.number().optional().describe("New priority ID"),
+  owner_id: z.coerce.number().optional().describe("New owner user ID"),
 }, (args) => {
   const { id, ...data } = args;
   return handle(() => client.ticketsUpdate(id, data));
 });
 
 server.tool("delete_ticket", "Delete a ticket (admin only, permanent)", {
-  id: z.number().describe("Ticket ID"),
+  id: z.coerce.number().describe("Ticket ID"),
 }, (args) => handle(() => client.ticketsDestroy(args.id)));
 
 server.tool("merge_tickets", "Merge a ticket into another ticket", {
-  source_id: z.number().describe("Ticket ID to merge (will be closed)"),
-  target_id: z.number().describe("Ticket ID to merge into"),
+  source_id: z.coerce.number().describe("Ticket ID to merge (will be closed)"),
+  target_id: z.coerce.number().describe("Ticket ID to merge into"),
 }, (args) => handle(() => client.ticketsMerge(args.source_id, args.target_id)));
 
 // ── Ticket Articles ─────────────────────────────────────────
 
 server.tool("get_ticket_articles", "Get all articles/messages for a ticket", {
-  ticket_id: z.number().describe("Ticket ID"),
+  ticket_id: z.coerce.number().describe("Ticket ID"),
 }, (args) => handle(() => client.ticketArticlesForTicket(args.ticket_id)));
 
 server.tool("get_article", "Get a specific article by ID", {
-  id: z.number().describe("Article ID"),
+  id: z.coerce.number().describe("Article ID"),
 }, (args) => handle(() => client.ticketArticlesFind(args.id)));
 
 server.tool("add_article", "Add a note or reply to a ticket", {
-  ticket_id: z.number().describe("Ticket ID"),
+  ticket_id: z.coerce.number().describe("Ticket ID"),
   body: z.string().describe("Message body"),
   subject: z.string().optional().describe("Subject line"),
   type: z.string().optional().describe("Type: note, email, phone (default: note)"),
@@ -105,16 +109,16 @@ server.tool("add_article", "Add a note or reply to a ticket", {
 // ── Tags ────────────────────────────────────────────────────
 
 server.tool("get_ticket_tags", "Get tags for a ticket", {
-  ticket_id: z.number().describe("Ticket ID"),
+  ticket_id: z.coerce.number().describe("Ticket ID"),
 }, (args) => handle(() => client.tagsForTicket(args.ticket_id)));
 
 server.tool("add_ticket_tag", "Add a tag to a ticket", {
-  ticket_id: z.number().describe("Ticket ID"),
+  ticket_id: z.coerce.number().describe("Ticket ID"),
   tag: z.string().describe("Tag name"),
 }, (args) => handle(() => client.tagsAdd(args.ticket_id, args.tag)));
 
 server.tool("remove_ticket_tag", "Remove a tag from a ticket", {
-  ticket_id: z.number().describe("Ticket ID"),
+  ticket_id: z.coerce.number().describe("Ticket ID"),
   tag: z.string().describe("Tag name"),
 }, (args) => handle(() => client.tagsRemove(args.ticket_id, args.tag)));
 
@@ -123,18 +127,18 @@ server.tool("list_tags", "List all available tags", {}, () => handle(() => clien
 // ── Links ───────────────────────────────────────────────────
 
 server.tool("get_ticket_links", "Get linked tickets for a ticket", {
-  ticket_id: z.number().describe("Ticket ID"),
+  ticket_id: z.coerce.number().describe("Ticket ID"),
 }, (args) => handle(() => client.linksGet(args.ticket_id)));
 
 server.tool("link_tickets", "Link two tickets together", {
-  source_id: z.number().describe("Source ticket ID"),
-  target_id: z.number().describe("Target ticket ID"),
+  source_id: z.coerce.number().describe("Source ticket ID"),
+  target_id: z.coerce.number().describe("Target ticket ID"),
   link_type: z.string().optional().describe("Link type: normal (default), parent, child"),
 }, (args) => handle(() => client.linksAdd(args.source_id, args.target_id, args.link_type)));
 
 server.tool("unlink_tickets", "Remove link between two tickets", {
-  source_id: z.number().describe("Source ticket ID"),
-  target_id: z.number().describe("Target ticket ID"),
+  source_id: z.coerce.number().describe("Source ticket ID"),
+  target_id: z.coerce.number().describe("Target ticket ID"),
   link_type: z.string().optional().describe("Link type to remove (default: normal)"),
 }, (args) => handle(() => client.linksRemove(args.source_id, args.target_id, args.link_type)));
 
@@ -142,16 +146,16 @@ server.tool("unlink_tickets", "Remove link between two tickets", {
 
 server.tool("search_users", "Search users by name or email", {
   query: z.string().describe("Search query"),
-  limit: z.number().optional().describe("Max results"),
+  limit: z.coerce.number().optional().describe("Max results"),
 }, (args) => handle(() => client.usersSearch(args.query, args.limit)));
 
 server.tool("get_user", "Get a user by ID", {
-  id: z.number().describe("User ID"),
+  id: z.coerce.number().describe("User ID"),
 }, (args) => handle(() => client.usersFind(args.id)));
 
 server.tool("list_users", "List users with pagination", {
-  page: z.number().optional(),
-  per_page: z.number().optional(),
+  page: z.coerce.number().optional(),
+  per_page: z.coerce.number().optional(),
 }, (args) => handle(() => client.usersAll(args.page, args.per_page)));
 
 server.tool("create_user", "Create a new user", {
@@ -162,7 +166,7 @@ server.tool("create_user", "Create a new user", {
 }, (args) => handle(() => client.usersCreate(args)));
 
 server.tool("update_user", "Update a user", {
-  id: z.number().describe("User ID"),
+  id: z.coerce.number().describe("User ID"),
   email: z.string().optional(),
   firstname: z.string().optional(),
   lastname: z.string().optional(),
@@ -177,16 +181,16 @@ server.tool("whoami", "Get the current authenticated user", {}, () => handle(() 
 
 server.tool("search_organizations", "Search organizations", {
   query: z.string().describe("Search query"),
-  limit: z.number().optional(),
+  limit: z.coerce.number().optional(),
 }, (args) => handle(() => client.organizationsSearch(args.query, args.limit)));
 
 server.tool("get_organization", "Get an organization by ID", {
-  id: z.number().describe("Organization ID"),
+  id: z.coerce.number().describe("Organization ID"),
 }, (args) => handle(() => client.organizationsFind(args.id)));
 
 server.tool("list_organizations", "List organizations with pagination", {
-  page: z.number().optional(),
-  per_page: z.number().optional(),
+  page: z.coerce.number().optional(),
+  per_page: z.coerce.number().optional(),
 }, (args) => handle(() => client.organizationsAll(args.page, args.per_page)));
 
 server.tool("create_organization", "Create a new organization", {
@@ -196,9 +200,9 @@ server.tool("create_organization", "Create a new organization", {
 // ── Groups & Roles ──────────────────────────────────────────
 
 server.tool("list_groups", "List all groups (for ticket assignment)", {}, () => handle(() => client.groupsAll()));
-server.tool("get_group", "Get a group by ID", { id: z.number() }, (args) => handle(() => client.groupsFind(args.id)));
+server.tool("get_group", "Get a group by ID", { id: z.coerce.number() }, (args) => handle(() => client.groupsFind(args.id)));
 server.tool("list_roles", "List all roles", {}, () => handle(() => client.rolesAll()));
-server.tool("get_role", "Get a role by ID", { id: z.number() }, (args) => handle(() => client.rolesFind(args.id)));
+server.tool("get_role", "Get a role by ID", { id: z.coerce.number() }, (args) => handle(() => client.rolesFind(args.id)));
 
 // ── Ticket States & Priorities ──────────────────────────────
 
@@ -208,12 +212,12 @@ server.tool("list_ticket_priorities", "List all ticket priorities", {}, () => ha
 // ── Notifications ───────────────────────────────────────────
 
 server.tool("list_notifications", "List online notifications", {
-  page: z.number().optional(),
-  per_page: z.number().optional(),
+  page: z.coerce.number().optional(),
+  per_page: z.coerce.number().optional(),
 }, (args) => handle(() => client.notificationsAll(args.page, args.per_page)));
 
 server.tool("get_notification", "Get a notification by ID", {
-  id: z.number().describe("Notification ID"),
+  id: z.coerce.number().describe("Notification ID"),
 }, (args) => handle(() => client.notificationsFind(args.id)));
 
 server.tool("mark_all_notifications_read", "Mark all notifications as read", {}, () => handle(() => client.notificationsMarkAllRead()));
@@ -222,7 +226,7 @@ server.tool("mark_all_notifications_read", "Mark all notifications as read", {},
 
 server.tool("list_object_attributes", "List custom object/field definitions", {}, () => handle(() => client.objectsAll()));
 server.tool("get_object_attribute", "Get a custom object attribute by ID", {
-  id: z.number(),
+  id: z.coerce.number(),
 }, (args) => handle(() => client.objectsFind(args.id)));
 
 // ── Knowledge Base ──────────────────────────────────────────
@@ -234,72 +238,72 @@ server.tool("search_knowledge_base", "Search the knowledge base for answers", {
 server.tool("kb_init", "Get full knowledge base structure (categories, answers, locales)", {}, () => handle(() => client.kbInit()));
 
 server.tool("get_kb_answer", "Get a knowledge base answer by ID", {
-  id: z.number().describe("Answer ID"),
+  id: z.coerce.number().describe("Answer ID"),
 }, (args) => handle(() => client.kbAnswerFind(args.id)));
 
 server.tool("create_kb_answer", "Create a new knowledge base article", {
-  category_id: z.number().describe("Category ID to place the answer in"),
+  category_id: z.coerce.number().describe("Category ID to place the answer in"),
   title: z.string().describe("Article title"),
   body: z.string().describe("Article content (HTML supported)"),
 }, (args) => handle(() => client.kbAnswerCreate(args)));
 
 server.tool("update_kb_answer", "Update a knowledge base article", {
-  id: z.number().describe("Answer ID"),
-  translation_id: z.number().describe("Translation ID (from the answer object)"),
+  id: z.coerce.number().describe("Answer ID"),
+  translation_id: z.coerce.number().describe("Translation ID (from the answer object)"),
   title: z.string().optional().describe("New title"),
   body: z.string().optional().describe("New content"),
-  category_id: z.number().optional().describe("Move to a different category"),
+  category_id: z.coerce.number().optional().describe("Move to a different category"),
 }, (args) => {
   const { id, ...data } = args;
   return handle(() => client.kbAnswerUpdate(id, data));
 });
 
 server.tool("delete_kb_answer", "Delete a knowledge base answer", {
-  id: z.number().describe("Answer ID"),
+  id: z.coerce.number().describe("Answer ID"),
 }, (args) => handle(() => client.kbAnswerDestroy(args.id)));
 
 server.tool("publish_kb_answer", "Publish a knowledge base answer (make it visible)", {
-  id: z.number().describe("Answer ID"),
+  id: z.coerce.number().describe("Answer ID"),
 }, (args) => handle(() => client.kbAnswerPublish(args.id)));
 
 server.tool("archive_kb_answer", "Archive a knowledge base answer", {
-  id: z.number().describe("Answer ID"),
+  id: z.coerce.number().describe("Answer ID"),
 }, (args) => handle(() => client.kbAnswerArchive(args.id)));
 
 server.tool("internal_kb_answer", "Set a knowledge base answer to internal-only", {
-  id: z.number().describe("Answer ID"),
+  id: z.coerce.number().describe("Answer ID"),
 }, (args) => handle(() => client.kbAnswerInternal(args.id)));
 
 server.tool("get_kb_category", "Get a knowledge base category by ID", {
-  id: z.number().describe("Category ID"),
+  id: z.coerce.number().describe("Category ID"),
 }, (args) => handle(() => client.kbCategoryFind(args.id)));
 
 server.tool("create_kb_category", "Create a new knowledge base category", {
   title: z.string().describe("Category title"),
   icon: z.string().optional().describe("Font Awesome icon code (default: f115)"),
-  parent_id: z.number().optional().describe("Parent category ID for subcategories"),
+  parent_id: z.coerce.number().optional().describe("Parent category ID for subcategories"),
 }, (args) => handle(() => client.kbCategoryCreate(args)));
 
 server.tool("update_kb_category", "Update a knowledge base category", {
-  id: z.number().describe("Category ID"),
-  translation_id: z.number().describe("Translation ID"),
+  id: z.coerce.number().describe("Category ID"),
+  translation_id: z.coerce.number().describe("Translation ID"),
   title: z.string().optional().describe("New title"),
   icon: z.string().optional().describe("New icon code"),
-  parent_id: z.number().optional().describe("New parent category"),
+  parent_id: z.coerce.number().optional().describe("New parent category"),
 }, (args) => {
   const { id, ...data } = args;
   return handle(() => client.kbCategoryUpdate(id, data));
 });
 
 server.tool("delete_kb_category", "Delete a knowledge base category", {
-  id: z.number().describe("Category ID"),
+  id: z.coerce.number().describe("Category ID"),
 }, (args) => handle(() => client.kbCategoryDestroy(args.id)));
 
 // ── Global Search ───────────────────────────────────────────
 
 server.tool("global_search", "Search across all Zammad resources (tickets, users, organizations)", {
   query: z.string().describe("Search query"),
-  limit: z.number().optional().describe("Max results (default 10)"),
+  limit: z.coerce.number().optional().describe("Max results (default 10)"),
 }, (args) => handle(() => client.globalSearch(args.query, args.limit)));
 
 // ── Start ───────────────────────────────────────────────────
