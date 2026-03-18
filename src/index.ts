@@ -274,6 +274,21 @@ server.tool("internal_kb_answer", "Set a knowledge base answer to internal-only"
   id: z.coerce.number().describe("Answer ID"),
 }, (args) => handle(() => client.kbAnswerInternal(args.id)));
 
+server.tool("add_kb_translation", "Add a translation to an existing knowledge base answer (e.g. Japanese version)", {
+  answer_id: z.coerce.number().describe("Answer ID to add translation to"),
+  kb_locale_id: z.coerce.number().describe("KB locale ID (use list_kb_locales to find IDs)"),
+  title: z.string().describe("Translated title"),
+  body: z.string().describe("Translated content (HTML supported)"),
+  category_id: z.coerce.number().describe("Category ID (required by Zammad API)"),
+}, (args) => handle(() => client.kbAnswerAddTranslation(args.answer_id, {
+  kb_locale_id: args.kb_locale_id,
+  title: args.title,
+  body: args.body,
+  category_id: args.category_id,
+})));
+
+server.tool("list_kb_locales", "List available knowledge base locales (languages)", {}, () => handle(() => client.kbLocales()));
+
 server.tool("get_kb_category", "Get a knowledge base category by ID", {
   id: z.coerce.number().describe("Category ID"),
 }, (args) => handle(() => client.kbCategoryFind(args.id)));

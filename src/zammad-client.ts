@@ -262,6 +262,26 @@ export class ZammadClient {
     if (data.category_id) payload.category_id = data.category_id;
     return this.request<unknown>("PATCH", `/knowledge_bases/${this.kbId}/answers/${answerId}`, payload);
   }
+  kbAnswerAddTranslation(answerId: number, data: { kb_locale_id: number; title: string; body: string; category_id: number }) {
+    return this.request<unknown>("PATCH", `/knowledge_bases/${this.kbId}/answers/${answerId}`, {
+      category_id: data.category_id,
+      translations_attributes: [{
+        kb_locale_id: data.kb_locale_id,
+        title: data.title,
+        content_attributes: { body: data.body },
+      }],
+    });
+  }
+  kbLocales() {
+    return this.kbInit().then((init: any) => {
+      const locales = init["KnowledgeBaseLocale"] ?? {};
+      return Object.values(locales).map((l: any) => ({
+        kb_locale_id: l.id,
+        system_locale_id: l.system_locale_id,
+        primary: l.primary,
+      }));
+    });
+  }
   kbAnswerDestroy(answerId: number) {
     return this.request<unknown>("DELETE", `/knowledge_bases/${this.kbId}/answers/${answerId}`);
   }
