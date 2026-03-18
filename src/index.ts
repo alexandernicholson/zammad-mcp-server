@@ -79,9 +79,9 @@ server.tool("update_ticket", "Update a ticket's properties (state, priority, gro
   return handle(() => client.ticketsUpdate(id, data));
 });
 
-server.tool("delete_ticket", "Delete a ticket (admin only, permanent)", {
+server.tool("close_ticket", "Close a ticket (sets state to closed)", {
   id: z.coerce.number().describe("Ticket ID"),
-}, (args) => handle(() => client.ticketsDestroy(args.id)));
+}, (args) => handle(() => client.ticketsUpdate(args.id, { state: "closed" })));
 
 server.tool("merge_tickets", "Merge a ticket into another ticket", {
   source_id: z.coerce.number().describe("Ticket ID to merge (will be closed)"),
