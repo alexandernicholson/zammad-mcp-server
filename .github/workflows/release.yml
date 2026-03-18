@@ -9,19 +9,13 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  build:
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
             target: bun-linux-x64
             artifact: zammad-mcp-server-linux-x64
-          - os: ubuntu-latest
-            target: bun-linux-arm64
-            artifact: zammad-mcp-server-linux-arm64
-          - os: macos-latest
-            target: bun-darwin-x64
-            artifact: zammad-mcp-server-darwin-x64
           - os: macos-latest
             target: bun-darwin-arm64
             artifact: zammad-mcp-server-darwin-arm64
@@ -33,7 +27,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      - run: bun install
+      - run: bun install --registry https://registry.npmjs.org
 
       - name: Build single binary
         run: bun build src/index.ts --compile --target=${{ matrix.target }} --outfile ${{ matrix.artifact }}
@@ -43,8 +37,8 @@ jobs:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.artifact }}
 
-  create-release:
-    needs: build-and-release
+  release:
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
