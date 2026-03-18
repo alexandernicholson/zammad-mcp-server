@@ -1,0 +1,23 @@
+{
+  "name": "zammad-mcp-server",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "zammad-mcp-server": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "keywords": ["mcp", "zammad", "helpdesk"],
+  "author": "TableCheck",
+  "license": "ISC",
+  "description": "MCP server for Zammad helpdesk - enables AI agents to manage tickets, search knowledge base, and provide L1 support",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@types/node": "^25.5.0",
+    "typescript": "^5.9.3",
+    "zod": "^4.3.6"
+  }
+}
