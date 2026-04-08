@@ -105,6 +105,23 @@ export class ZammadClient {
     state_id?: number;
     tags?: string;
   }) {
+    const articleType = data.type ?? "note";
+    // Workaround for zammad/zammad#4460: when an agent-token API call creates a
+    // ticket whose first article is type=email without an explicit sender,
+    // Zammad defaults sender=Agent and the "auto-reply to customer" trigger
+    // fires with an empty `to:` recipient. Pinning sender=Customer mirrors the
+    // upstream-recommended workaround — the article represents the inbound
+    // email that opened the ticket.
+    const article: Record<string, unknown> = {
+      subject: data.title,
+      body: data.body,
+      type: articleType,
+      internal: false,
+    };
+    if (articleType === "email") {
+      article.sender = "Customer";
+      article.from = data.customer;
+    }
     return this.request<unknown>("POST", "/tickets", {
       title: data.title,
       group: data.group,
@@ -112,12 +129,7 @@ export class ZammadClient {
       priority_id: data.priority_id ?? 2,
       state_id: data.state_id ?? 1,
       tags: data.tags,
-      article: {
-        subject: data.title,
-        body: data.body,
-        type: data.type ?? "note",
-        internal: false,
-      },
+      article,
     });
   }
   ticketsUpdate(id: number, data: unknown) { return this.update("tickets", id, data); }
@@ -138,16 +150,32 @@ export class ZammadClient {
     subject?: string;
     type?: string;
     internal?: boolean;
+    to?: string;
+    cc?: string;
   }) {
-    return this.request<unknown>("POST", "/ticket_articles", {
+    const articleType = data.type ?? "note";
+    const internal = data.internal ?? true;
+    // Guard for zammad/zammad#4460: a non-internal email article without a
+    // recipient causes Zammad to send an email with an empty `to:` header.
+    // Require the caller to supply `to` when they're sending a public email.
+    if (articleType === "email" && !internal && !data.to) {
+      throw new Error(
+        'add_article: "to" is required when type="email" and internal=false ' +
+        '(see zammad/zammad#4460 — otherwise Zammad sends an email with an empty recipient).'
+      );
+    }
+    const payload: Record<string, unknown> = {
       ticket_id: data.ticket_id,
       body: data.body,
       subject: data.subject,
-      type: data.type ?? "note",
-      internal: data.internal ?? true,
+      type: articleType,
+      internal,
       sender: "Agent",
       content_type: "text/plain",
-    });
+    };
+    if (data.to) payload.to = data.to;
+    if (data.cc) payload.cc = data.cc;
+    return this.request<unknown>("POST", "/ticket_articles", payload);
   }
 
   // ── Ticket States / Priorities ──────────────────────────

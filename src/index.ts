@@ -104,6 +104,8 @@ server.tool("add_article", "Add a note or reply to a ticket", {
   subject: z.string().optional().describe("Subject line"),
   type: z.string().optional().describe("Type: note, email, phone (default: note)"),
   internal: z.boolean().optional().describe("Internal note only visible to agents (default: true)"),
+  to: z.string().optional().describe("Recipient email. REQUIRED when type='email' and internal=false — otherwise Zammad sends email with empty recipient (zammad/zammad#4460)."),
+  cc: z.string().optional().describe("CC email address(es) for email-type articles"),
 }, (args) => handle(() => client.ticketArticlesCreate(args)));
 
 // ── Tags ────────────────────────────────────────────────────
